@@ -20,16 +20,27 @@ if(exworklog != undefined && exworklog.isModified() && !exworklog.isNull() && ex
 
         //    add a worklog entry to the collection
         var worklog = worklogs.add();
-        worklog.setValue("LOGTYPE","WORK");
-        //worklog.setValue("DESCRIPTION","Support Log Entry");
+
+        //  Set default log type
+        if (mbo.getMboValue("EXWORKLOGTYPE").isNull())
+        {
+          worklog.setValue("LOGTYPE","WORK");
+        }
+        else
+        {
+          worklog.setValue("LOGTYPE",mbo.getMboValue("EXWORKLOGTYPE"))
+        }
+
         worklog.setValue("DESCRIPTION",title);
         worklog.setValue("DESCRIPTION_LONGDESCRIPTION",exworklog.getString());
 
         //    Clear the EXWORKLOGGER field
         exworklog.setValue("");
+        mbo.setValue("EXWORKLOGTYPE","");
 
         //
         //    Update the Updated checkbox if edited by someone other than Owner
+        //    Required here and farther down the script for 2 different cases
         //
         if (mbo.getMboValue("OWNER") != user)
         {
@@ -57,13 +68,27 @@ if(exworklog != undefined && exworklog.isModified() && !exworklog.isNull() && ex
 
 //
 //    Update the Updated checkbox if edited by someone other than Owner
+//    Required here and farther up the script for 2 different cases
 //
-
 if (mbo.getMboValue("OWNER") != user)
 {
   mbo.setValue("EXUPDATED",1);
 }
 
+//
+//    Re-apply SLA if Priority or CI has changed
+//
+var newPriority = mbo.getString("INTERNALPRIORITY");
+var oldPriority = mbo.getMboInitialValue("INTERNALPRIORITY").asString();
+var newCI = mbo.getString("CINUM");
+var oldCI = mbo.getMboInitialValue("CINUM").asString();
+
+if ((!newPriority.equals(oldPriority)) || (!newCI.equals(oldCI)))
+{
+    println ("TRYING TO APPLY SLA");
+    var slaRecordSet = mbo.getMboSet("REP_SLA");
+    slaRecordSet.applySLA();
+}
 
 //    returns either
 //    - the first line if it is shorter than 100 characters
